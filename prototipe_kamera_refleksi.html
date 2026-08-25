@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prototipe Kamera Refleksi</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;min-height:100vh;display:flex;justify-content:center;align-items:center;background:linear-gradient(#8fd3ff,#f8fbfd);color:#3d2b1f}
+.app{width:min(850px,94vw);padding:28px;text-align:center;background:#fff;border-radius:24px;box-shadow:0 15px 45px #0002}
+h1{margin:0 0 8px}.sub{margin:0 0 20px}.choices{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+button{border:0;border-radius:14px;padding:13px 18px;font-size:17px;font-weight:bold;cursor:pointer;background:#8a5a36;color:white}
+.choice{background:white;color:#3d2b1f;border:2px solid #d8c5b2}.selected{background:#f5eadf!important;border-color:#8a5a36!important}
+.stage{width:min(600px,100%);margin:22px auto}.screen{width:100%;aspect-ratio:4/3;background:#202832;border-radius:18px;overflow:hidden}
+video,img{width:100%;height:100%;object-fit:cover}img{display:none}
+.count{font-size:70px;font-weight:bold}.status{min-height:26px;margin:12px}.controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.secondary{background:#66727d}
+.motivation{display:none;margin:15px auto;padding:15px;background:#f4eadf;border-radius:14px;font-size:19px;font-weight:bold}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<main class="app">
+<h1>REFLEKSI PENGALAMAN BELAJAR</h1>
+<p class="sub">Pilih perasaan kelompokmu, lalu bersiap untuk foto bersama.</p>
+
+<div class="choices">
+<button class="choice" data-feeling="😊 Sangat Menyenangkan">😊<br>Sangat Menyenangkan</button>
+<button class="choice" data-feeling="🙂 Menyenangkan">🙂<br>Menyenangkan</button>
+<button class="choice" data-feeling="😐 Cukup Menyenangkan">😐<br>Cukup Menyenangkan</button>
+</div>
+
+<div class="stage"><div class="screen">
+<video id="video" autoplay playsinline muted></video>
+<img id="photo" alt="Hasil foto">
+</div></div>
+
+<div id="count" class="count hidden">10</div>
+<div id="status" class="status">Pilih salah satu emoji untuk memulai.</div>
+
+<div class="controls">
+<button id="start" class="hidden">AKTIFKAN KAMERA</button>
+<button id="capture" class="hidden">JEPRET SEKARANG</button>
+<button id="reset" class="secondary">RESET</button>
+</div>
+
+<div id="motivation" class="motivation">Hebat, Petualang! Terus semangat belajar, bergerak, dan menjaga tubuh tetap bugar! 💪</div>
+</main>
+
+<script>
+let stream=null,timer=null,feeling="";
+const video=document.getElementById("video"),photo=document.getElementById("photo"),
+count=document.getElementById("count"),status=document.getElementById("status"),
+start=document.getElementById("start"),capture=document.getElementById("capture"),
+reset=document.getElementById("reset"),motivation=document.getElementById("motivation"),
+choices=[...document.querySelectorAll(".choice")];
+
+choices.forEach(b=>b.onclick=()=>{
+ choices.forEach(x=>x.classList.remove("selected")); b.classList.add("selected");
+ feeling=b.dataset.feeling; status.textContent="Pilihan: "+feeling; start.classList.remove("hidden");
+});
+
+start.onclick=async()=>{
+ if(!navigator.mediaDevices?.getUserMedia){status.textContent="Browser ini tidak menyediakan akses kamera.";return}
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+  video.srcObject=stream; video.style.display="block"; photo.style.display="none";
+  start.classList.add("hidden");capture.classList.remove("hidden");motivation.style.display="none";
+  let n=10;count.textContent=n;count.classList.remove("hidden");
+  status.textContent="Bersiaplah dan tunjukkan ekspresi kelompokmu!";
+  timer=setInterval(()=>{n--;count.textContent=n;if(n<=0){clearInterval(timer);takePhoto()}},1000);
+ }catch(e){status.textContent="Kamera belum dapat digunakan. Izinkan akses kamera pada browser."}
+};
+
+capture.onclick=takePhoto;
+
+function takePhoto(){
+ clearInterval(timer);
+ if(!video.videoWidth){status.textContent="Kamera belum siap. Coba lagi.";return}
+ const c=document.createElement("canvas");c.width=video.videoWidth;c.height=video.videoHeight;
+ c.getContext("2d").drawImage(video,0,0,c.width,c.height);
+ photo.src=c.toDataURL("image/jpeg",.9);video.style.display="none";photo.style.display="block";
+ count.classList.add("hidden");capture.classList.add("hidden");motivation.style.display="block";
+ status.textContent="📸 Foto berhasil diambil! "+feeling;stopCamera();
+}
+function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
+reset.onclick=()=>{
+ clearInterval(timer);stopCamera();choices.forEach(x=>x.classList.remove("selected"));feeling="";
+ video.srcObject=null;video.style.display="block";photo.style.display="none";photo.removeAttribute("src");
+ count.classList.add("hidden");start.classList.add("hidden");capture.classList.add("hidden");
+ motivation.style.display="none";status.textContent="Pilih salah satu emoji untuk memulai.";
+};
+</script>
+</body>
+</html>
